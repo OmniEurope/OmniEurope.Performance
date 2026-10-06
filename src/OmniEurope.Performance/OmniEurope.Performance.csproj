@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <!-- Every public member carries an XML doc (CS1591 is an error under TreatWarningsAsErrors). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>OmniEurope.Performance</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>OmniEurope contributors</Authors>
+    <Company>OmniEurope</Company>
+    <Description>A minimal, unstyled ASP.NET Core page that measures the request performance of the site it is mounted in: the slowest calls and per-route percentiles over a configurable window, in at most 2 MiB of memory.</Description>
+    <PackageTags>aspnetcore;blazor;performance;diagnostics;eupl</PackageTags>
+    <PackageLicenseExpression>EUPL-1.2</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/OmniEurope/OmniEurope.Performance</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/OmniEurope/OmniEurope.Performance</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- The texts of Resources/PerformanceStrings.resx are French; English ships as a satellite. -->
+    <NeutralLanguage>fr</NeutralLanguage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The recorder listens to the ASP.NET Core hosting metrics and the page is an endpoint result:
+         the package targets an ASP.NET Core host, never a standalone WebAssembly app. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>
