@@ -4,10 +4,17 @@ Les changements notables de ce projet seront documentés ici selon le format Kee
 
 ## [Unreleased]
 
+### Removed
+
+- Configuration des mises à jour automatiques des dépendances : plus aucune demande de mise à jour automatique ; le lanceur local signale les paquets
+  et le SDK en retard.
+
+## [0.1.0] - 2026-10-06
+
 ### Added
 
 - Squelette du dépôt : solution, projet `src/OmniEurope.Performance`, licence EUPL-1.2, lanceur
-  (`ylaunch.ps1`, cœur 1.0.5), contrôle CRAP (`scripts/crap-gate.ps1`), garde de versions des dépendances.
+  (`ylaunch.ps1`, cœur 1.0.5), contrôle CRAP (`scripts/crap-gate.ps1`).
 - Collecteur `RequestPerformanceRecorder` : durées de requête par modèle de route, lues sur la mesure
   `http.server.request.duration` d'ASP.NET Core, sans middleware ; fenêtre de 7 jours, 2 Mio de mémoire au plus avec roulement, pires requêtes gardées
   hors roulement, réglages `OmniPerformance`.
