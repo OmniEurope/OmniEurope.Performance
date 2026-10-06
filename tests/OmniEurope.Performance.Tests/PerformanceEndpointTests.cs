@@ -50,6 +50,21 @@ public sealed class PerformanceEndpointTests
         Assert.DoesNotContain(Routes(app), route => route.Contains("performance", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task ARealRequest_RaisesTheChangeSignal()
+    {
+        await using var app = await StartAsync(app => app.MapGet("/orders", () => "ok"));
+        using var client = app.GetTestClient();
+        var ct = TestContext.Current.CancellationToken;
+        var recorder = app.Services.GetRequiredService<RequestPerformanceRecorder>();
+        var change = recorder.WaitForChangeAsync(ct);
+
+        await client.GetAsync("/orders", ct);
+
+        await change.WaitAsync(TimeSpan.FromSeconds(10), ct);
+        Assert.Contains("/orders", Routes(app));
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("  ")]

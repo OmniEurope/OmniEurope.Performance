@@ -4,6 +4,14 @@ Les changements notables de ce projet seront documentés ici selon le format Kee
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-06
+
+### Added
+
+- Signal de changement `RequestPerformanceRecorder.WaitForChangeAsync` : se termine dès qu'une requête mesurée est
+  enregistrée, plusieurs requêtes entre deux attentes ne donnent qu'un signal ; il permet à une page de
+  l'application de se mettre à jour en direct.
+
 ### Changed
 
 - Description du paquet et README : la limite de 2 Mio porte sur la mémoire conservée par le collecteur ; le README

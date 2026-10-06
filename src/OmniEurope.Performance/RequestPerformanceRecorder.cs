@@ -42,6 +42,9 @@ public sealed class RequestPerformanceRecorder : IHostedService, IDisposable
     private readonly SlowestRequests _slowest;
     private readonly DateTime _startedAt;
     private readonly Func<string, bool> _filter;
+    // Raised by a recorded sample, taken by WaitForChangeAsync; never disposed: it holds no wait handle,
+    // and a listener callback racing the host's shutdown must not hit a disposed semaphore on the request path.
+    private readonly SemaphoreSlim _changed = new(0, 1);
     private MeterListener? _listener;
 
     /// <summary>Creates the recorder; <see cref="StartAsync"/> starts listening.</summary>
@@ -111,6 +114,15 @@ public sealed class RequestPerformanceRecorder : IHostedService, IDisposable
     }
 
     /// <summary>
+    /// Completes once a request has been recorded since the previous wait returned: any number of requests in
+    /// between collapse into one signal, and a route the filter leaves out raises none. Meant for one consumer
+    /// that then tells the readers (a hub broadcast, a cache refresh), spacing its reads as it sees fit: two
+    /// concurrent waiters share the signals, each one wakes a single waiter.
+    /// </summary>
+    /// <param name="cancellationToken">Ends the wait, with an <see cref="OperationCanceledException"/>.</param>
+    public Task WaitForChangeAsync(CancellationToken cancellationToken) => _changed.WaitAsync(cancellationToken);
+
+    /// <summary>
     /// The default filter: every templated route but the health probes, the framework's own endpoints and
     /// static files (a last segment holding a dot and no parameter, <c>/css/app.css</c>). A family is matched
     /// by whole segment, so <c>/healthcare/{id}</c> stays measured.
@@ -160,6 +172,15 @@ public sealed class RequestPerformanceRecorder : IHostedService, IDisposable
         var sample = new RequestTimingSample(_time.GetUtcNow().UtcDateTime, method, template, statusCode, durationMs);
         _slowest.Add(sample);
         _samples.Add(sample);
+        SignalChange();
+    }
+
+    private void SignalChange()
+    {
+        // A binary signal: already raised means the waiter will read this request with the others.
+        if (_changed.CurrentCount > 0) return;
+        try { _changed.Release(); }
+        catch (SemaphoreFullException) { } // two requests raced to raise the same signal
     }
 
     /// <summary>

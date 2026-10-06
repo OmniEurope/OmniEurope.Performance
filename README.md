@@ -57,6 +57,11 @@ refusé au démarrage de l'application.
   fourni selon la culture de la requête (`UseRequestLocalization`).
 - **Pour habiller la page** : `PerformanceReportView` affiche les chiffres seuls (sans `<html>`) à partir de
   `RequestPerformanceRecorder.Summarize()`, pour être placée dans une page aux couleurs de l'application.
+- **Pour une page en direct** : `RequestPerformanceRecorder.WaitForChangeAsync(ct)` se termine dès qu'une requête
+  mesurée a été enregistrée depuis l'attente précédente ; les requêtes arrivées entre deux attentes ne donnent qu'un
+  signal, une route écartée par le filtre n'en donne aucun. Il est fait pour un seul consommateur (un service de fond
+  qui prévient les pages ouvertes et espace lui-même ses annonces). Si les pages relisent les chiffres par un point
+  d'accès de l'application, excluez-le des mesures (`.DisableHttpMetrics()`), sinon chaque lecture relance le signal.
 
 ## Ce qu'il ne fait pas, volontairement
 
@@ -65,8 +70,9 @@ refusé au démarrage de l'application.
   ou à sa bibliothèque de composants, qui dépend de ce paquet, jamais l'inverse.
 - **Pas de Blazor WebAssembly autonome** : le collecteur vit dans le processus serveur, le paquet exige un hôte
   ASP.NET Core (Blazor Web App, Blazor Server, API).
-- Rien au-delà de la page : pas de rafraîchissement automatique (recharger la page relit les chiffres), pas
-  d'historique au-delà de la fenêtre ni après un redémarrage, pas d'envoi de données.
+- Rien au-delà de la page : la page fournie ne se rafraîchit pas seule (recharger la page relit les chiffres ;
+  le signal ci-dessus sert aux pages de l'application), pas d'historique au-delà de la fenêtre ni après un
+  redémarrage, pas d'envoi de données.
 
 ## Dépendances
 
