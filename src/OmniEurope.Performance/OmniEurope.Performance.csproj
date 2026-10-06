@@ -6,7 +6,7 @@
     <Version>0.1.0</Version>
     <Authors>OmniEurope contributors</Authors>
     <Company>OmniEurope</Company>
-    <Description>A minimal, unstyled ASP.NET Core page that measures the request performance of the site it is mounted in: the slowest calls and per-route percentiles over a configurable window, in at most 2 MiB of memory.</Description>
+    <Description>A minimal, unstyled ASP.NET Core page that measures the request performance of the site it is mounted in: the slowest calls and per-route percentiles over a configurable window, keeping at most 2 MiB in memory.</Description>
     <PackageTags>aspnetcore;blazor;performance;diagnostics;eupl</PackageTags>
     <PackageLicenseExpression>EUPL-1.2</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

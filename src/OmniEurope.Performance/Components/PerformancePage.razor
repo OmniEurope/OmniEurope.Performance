@@ -3,7 +3,7 @@
 @* The page MapOmniPerformance answers with: a complete HTML document, no stylesheet, no script. The
    figures are read once per request; reloading the page reads them again. *@
 <!DOCTYPE html>
-<html lang="@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
+<html lang="@Language">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,4 +21,10 @@
 @code {
     [Inject] private RequestPerformanceRecorder Recorder { get; set; } = default!;
     [Inject] private IStringLocalizer<PerformanceStrings> L { get; set; } = default!;
+
+    /// <summary>The language of the texts: the UI culture's, or French, the neutral language, under the
+    /// invariant culture (whose two-letter name, "iv", is no language).</summary>
+    internal static string Language => CultureInfo.CurrentUICulture.Name.Length == 0
+        ? "fr"
+        : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 }

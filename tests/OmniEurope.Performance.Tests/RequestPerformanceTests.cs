@@ -15,10 +15,10 @@ public sealed class RequestPerformanceTests
     {
         double[] ascending = [10, 20, 30, 40, 50, 60, 70, 80, 90, 1000];
 
-        Assert.Equal(50, RequestPerformanceReport.Percentile(ascending, 0.50));
-        Assert.Equal(1000, RequestPerformanceReport.Percentile(ascending, 0.95));
-        Assert.Equal(10, RequestPerformanceReport.Percentile([10], 0.99));
-        Assert.Equal(0, RequestPerformanceReport.Percentile([], 0.99));
+        Assert.Equal(50, ascending[RequestPerformanceReport.NearestRank(ascending.Length, 0.50)]);
+        Assert.Equal(1000, ascending[RequestPerformanceReport.NearestRank(ascending.Length, 0.95)]);
+        Assert.Equal(0, RequestPerformanceReport.NearestRank(1, 0.99));
+        Assert.Equal(0, RequestPerformanceReport.NearestRank(0, 0.99));
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public sealed class RequestPerformanceTests
         var samples = Enumerable.Range(1, 30)
             .Select(i => new RequestTimingSample(at.AddMinutes(-i), "GET", "/api/projects", 200, i))
             .Append(new RequestTimingSample(at, "GET", "/api/pipelines/{id}", 200, 900))
-            .ToList();
+            .ToArray();
 
         var report = RequestPerformanceReport.Build(samples, truncated: false, [], at.AddDays(-7));
 
@@ -55,7 +55,13 @@ public sealed class RequestPerformanceTests
     [InlineData("/", true)]
     [InlineData("/api/v1.0/orders", true)]
     [InlineData("/files/{name}.pdf", true)]
+    [InlineData("/healthcare/{id}", true)]
+    [InlineData("/health-report", true)]
+    [InlineData("/health", false)]
     [InlineData("/health/ready", false)]
+    [InlineData("/Health/Ready", false)]
+    [InlineData("/_content/lib/site.css", false)]
+    [InlineData("/robots.txt", false)]
     [InlineData("/_framework/blazor.web.js", false)]
     [InlineData("/_blazor", false)]
     [InlineData("/css/app.css", false)]

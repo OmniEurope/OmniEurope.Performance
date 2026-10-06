@@ -14,8 +14,6 @@ internal sealed class SampleRing(int capacity)
     private int _count;
     private long _lastOverwrittenTicks = long.MinValue;
 
-    public int Capacity => _items.Length;
-
     public void Add(RequestTimingSample sample)
     {
         lock (_gate)
@@ -34,7 +32,7 @@ internal sealed class SampleRing(int capacity)
 
     /// <summary>The requests at or after <paramref name="cutoff"/>, oldest first, forgetting older ones; and
     /// whether the ring overwrote a request that would still be inside the window.</summary>
-    public (IReadOnlyList<RequestTimingSample> Samples, bool Truncated) Since(DateTime cutoff)
+    public (RequestTimingSample[] Samples, bool Truncated) Since(DateTime cutoff)
     {
         lock (_gate)
         {

@@ -36,6 +36,31 @@ public sealed class PerformanceEndpointTests
     }
 
     [Fact]
+    public async Task ACustomAddress_ServesThePage_AndThePageNeverMeasuresItself()
+    {
+        await using var app = await StartAsync(app => app.MapGet("/orders", () => "ok"), pattern: "/admin/performance");
+        using var client = app.GetTestClient();
+        var ct = TestContext.Current.CancellationToken;
+
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(PerformanceEndpointRouteBuilderExtensions.DefaultPattern, ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/admin/performance", ct)).StatusCode);
+        await client.GetAsync("/orders", ct);
+        await WaitForRouteAsync(app, "/orders", ct); // recorded after the page call, so the page had its chance
+
+        Assert.DoesNotContain(Routes(app), route => route.Contains("performance", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void ABlankAddress_IsRefused(string pattern)
+    {
+        var app = WebApplication.CreateBuilder().Build();
+
+        Assert.Throws<ArgumentException>(() => app.MapOmniPerformance(pattern));
+    }
+
+    [Fact]
     public async Task TwoHostsInOneProcess_NeverMixTheirFigures()
     {
         await using var first = await StartAsync(app => app.MapGet("/first", () => "1"));
@@ -76,7 +101,8 @@ public sealed class PerformanceEndpointTests
         Assert.Equal((TimeSpan.FromDays(3), 100, 2L * 1024 * 1024), (options.Window, options.SlowestCount, options.MemoryLimitBytes));
     }
 
-    private static async Task<WebApplication> StartAsync(Action<WebApplication> map, Action<IServiceCollection>? register = null)
+    private static async Task<WebApplication> StartAsync(
+        Action<WebApplication> map, Action<IServiceCollection>? register = null, string pattern = PerformanceEndpointRouteBuilderExtensions.DefaultPattern)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -84,7 +110,7 @@ public sealed class PerformanceEndpointTests
         register?.Invoke(builder.Services);
         var app = builder.Build();
         map(app);
-        app.MapOmniPerformance();
+        app.MapOmniPerformance(pattern);
         await app.StartAsync(TestContext.Current.CancellationToken);
         return app;
     }

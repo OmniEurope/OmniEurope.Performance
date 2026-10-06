@@ -13,6 +13,10 @@ un plan décrit un travail, pas l'état du produit.
 
 ## Plans actifs
 
-| Plan | Travail restant | ADR |
+Aucun.
+
+## Plans archivés
+
+| Plan | Résultat | ADR |
 |---|---|---|
-| [PLAN-001](PLAN-001-perimetre-initial.md) | Lots 1 à 4 livrés ; reste la première publication NuGet | Aucun |
+| [PLAN-001](archive/PLAN-001-perimetre-initial.md) | Périmètre initial livré, 0.1.0 publiée sur NuGet | Aucun |

@@ -75,6 +75,17 @@ public sealed class PerformanceReportViewTests : IDisposable
         Assert.Equal(["Slowest calls", "By route"], view.FindAll("h2").Select(h => h.TextContent));
     }
 
+    [Theory]
+    [InlineData("en-GB", "en")]
+    [InlineData("fr-BE", "fr")]
+    [InlineData("", "fr")] // invariant culture: its two-letter name "iv" is no language
+    public void ThePageLanguage_IsTheUiCultures_OrTheNeutralFrench(string culture, string expected)
+    {
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+
+        Assert.Equal(expected, PerformancePage.Language);
+    }
+
     private IRenderedComponent<PerformanceReportView> Render(RequestPerformanceSummary summary) =>
         _context.Render<PerformanceReportView>(parameters => parameters.Add(view => view.Summary, summary));
 

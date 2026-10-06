@@ -35,6 +35,24 @@ public sealed class RecorderMemoryTests
         Assert.InRange(allocated, limit * 8 / 10, limit);
     }
 
+    [Fact]
+    public void ReadingAFullWeek_AllocatesNoMoreThanOneCopyOfTheRing()
+    {
+        using var provider = new ServiceCollection().AddMetrics().BuildServiceProvider();
+        var meters = provider.GetRequiredService<IMeterFactory>();
+        var limit = new PerformanceOptions().MemoryLimitBytes;
+        var recorder = Fill(meters);
+        recorder.Summarize(); // one-time runtime allocations (sort comparers, generic instantiations) left out
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var summary = recorder.Summarize();
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        TestContext.Current.TestOutputHelper?.WriteLine($"Summarize allocated {allocated:N0} bytes for a limit of {limit:N0}.");
+        Assert.True(summary.SampleCount > 40_000, "The ring must be full, or the count says nothing about a heavy read.");
+        Assert.Equal(3, summary.Routes.Count);
+        Assert.InRange(allocated, summary.SampleCount * 40L, limit);
+    }
     /// <summary>A recorder with 400 requests in each hour of the week: every bucket of the slowest list full,
     /// the ring rolled many times over.</summary>
     private static RequestPerformanceRecorder Fill(IMeterFactory meters)

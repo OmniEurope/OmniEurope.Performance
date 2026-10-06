@@ -4,6 +4,20 @@ Les changements notables de ce projet seront documentés ici selon le format Kee
 
 ## [Unreleased]
 
+### Changed
+
+- Description du paquet et README : la limite de 2 Mio porte sur la mémoire conservée par le collecteur ; le README
+  précise ce qui reste hors de cette limite (cache des modèles de route, copie du tampon le temps d'afficher la page).
+
+### Fixed
+
+- Le filtre par défaut écarte les familles `/health`, `/_framework`, `/_content` et `/_blazor` par segment entier :
+  `/healthcare/{id}` est de nouveau mesuré.
+- La page n'est plus mesurée elle-même : sa lecture ne figure plus parmi les appels les plus lents.
+- `<html lang>` vaut `fr` sous la culture invariante (au lieu du code inexistant `iv`).
+- L'affichage de la page n'alloue plus qu'une copie du tampon (environ 1,9 Mio au lieu de plusieurs Mio) : les centiles
+  sont lus sur la copie triée sur place, le palmarès sort d'un tas borné.
+
 ### Removed
 
 - Configuration des mises à jour automatiques des dépendances : plus aucune demande de mise à jour automatique ; le lanceur local signale les paquets
@@ -14,9 +28,9 @@ Les changements notables de ce projet seront documentés ici selon le format Kee
 ### Added
 
 - Squelette du dépôt : solution, projet `src/OmniEurope.Performance`, licence EUPL-1.2, lanceur
-  (`ylaunch.ps1`, cœur 1.0.5), contrôle CRAP (`scripts/crap-gate.ps1`).
+  `ylaunch.ps1`, contrôle CRAP (`scripts/crap-gate.ps1`).
 - Collecteur `RequestPerformanceRecorder` : durées de requête par modèle de route, lues sur la mesure
-  `http.server.request.duration` d'ASP.NET Core, sans middleware ; fenêtre de 7 jours, 2 Mio de mémoire au plus avec roulement, pires requêtes gardées
+  `http.server.request.duration` d'ASP.NET Core, sans middleware ; fenêtre de 7 jours, 2 Mio de mémoire conservée au plus, avec roulement, pires requêtes gardées
   hors roulement, réglages `OmniPerformance`.
 - Page `/performance` (`AddOmniPerformance`, `MapOmniPerformance`) : document HTML sans style, appels les plus
   lents et centiles par route ; `PerformanceReportView` pour un hôte qui l'habille. Textes français et anglais.

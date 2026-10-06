@@ -23,6 +23,7 @@ public static class PerformanceEndpointRouteBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         ArgumentException.ThrowIfNullOrWhiteSpace(pattern);
-        return endpoints.MapGet(pattern, static () => new RazorComponentResult<PerformancePage>());
+        // Left out of the request metrics: reading the figures must not rank the page among the slowest calls.
+        return endpoints.MapGet(pattern, static () => new RazorComponentResult<PerformancePage>()).DisableHttpMetrics();
     }
 }

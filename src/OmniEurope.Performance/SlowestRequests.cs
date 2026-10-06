@@ -54,11 +54,21 @@ internal sealed class SlowestRequests(int count, TimeSpan window)
         lock (_gate)
         {
             DropBucketsBefore(cutoff);
-            return [.. _buckets.Values
-                .SelectMany(bucket => bucket.UnorderedItems.Select(item => item.Element))
-                .Where(sample => sample.At >= cutoff)
-                .OrderByDescending(sample => sample.DurationMs)
-                .Take(count)];
+            // A min-heap of the window's top `count`: memory bounded by the count, not by every bucket's content.
+            var top = new PriorityQueue<RequestTimingSample, double>(count);
+            foreach (var bucket in _buckets.Values)
+            {
+                foreach (var (sample, duration) in bucket.UnorderedItems)
+                {
+                    if (sample.At < cutoff) continue;
+                    if (top.Count < count) top.Enqueue(sample, duration);
+                    else if (top.TryPeek(out _, out var fastest) && duration > fastest) top.EnqueueDequeue(sample, duration);
+                }
+            }
+            var slowest = new RequestTimingSample[top.Count];
+            for (var i = slowest.Length - 1; i >= 0; i--)
+                slowest[i] = top.Dequeue();
+            return slowest;
         }
     }
 

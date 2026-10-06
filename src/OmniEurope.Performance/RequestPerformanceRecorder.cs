@@ -30,7 +30,9 @@ public sealed class RequestPerformanceRecorder : IHostedService, IDisposable
     /// dictionaries, the route cache of a typical site), set aside from the memory limit.</summary>
     internal const int FixedOverheadBytes = 32 * 1024;
 
-    private static readonly string[] ExcludedPrefixes = ["/health", "/_framework", "/_content", "/_blazor", "/favicon", "/robots.txt"];
+    /// <summary>Route families left out by default, matched as whole segments: <c>/health</c> and <c>/health/ready</c>,
+    /// never <c>/healthcare</c>. <c>/favicon.ico</c> and <c>/robots.txt</c> fall under the static-file rule.</summary>
+    private static readonly string[] ExcludedFamilies = ["/health", "/_framework", "/_content", "/_blazor"];
 
     private readonly SampleRing _samples;
     private readonly ConcurrentDictionary<string, string?> _templates = new(StringComparer.Ordinal);
@@ -110,14 +112,21 @@ public sealed class RequestPerformanceRecorder : IHostedService, IDisposable
 
     /// <summary>
     /// The default filter: every templated route but the health probes, the framework's own endpoints and
-    /// static files (a last segment holding a dot and no parameter, <c>/css/app.css</c>).
+    /// static files (a last segment holding a dot and no parameter, <c>/css/app.css</c>). A family is matched
+    /// by whole segment, so <c>/healthcare/{id}</c> stays measured.
     /// </summary>
     /// <param name="route">The route template, lower case with a leading slash.</param>
     public static bool IsMeasuredByDefault(string route)
     {
         ArgumentNullException.ThrowIfNull(route);
-        if (ExcludedPrefixes.Any(prefix => route.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
-            return false;
+        foreach (var family in ExcludedFamilies)
+        {
+            if (route.StartsWith(family, StringComparison.OrdinalIgnoreCase)
+                && (route.Length == family.Length || route[family.Length] == '/'))
+            {
+                return false;
+            }
+        }
         var lastSegment = route[(route.LastIndexOf('/') + 1)..];
         return !(lastSegment.Contains('.', StringComparison.Ordinal) && !lastSegment.Contains('{', StringComparison.Ordinal));
     }

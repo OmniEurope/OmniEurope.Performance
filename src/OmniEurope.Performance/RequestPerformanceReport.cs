@@ -39,47 +39,67 @@ public sealed record RouteTimingSummary(
 /// is tested without a listener or a clock.</summary>
 internal static class RequestPerformanceReport
 {
+    /// <summary>
+    /// Builds the summary. <paramref name="samples"/> is the caller's own copy and is sorted in place, by
+    /// route, method, then duration: each route is a contiguous, ordered run, so its percentiles are read
+    /// by index and nothing beyond the copy is allocated per sample.
+    /// </summary>
     public static RequestPerformanceSummary Build(
-        IReadOnlyList<RequestTimingSample> samples, bool truncated, IReadOnlyList<RequestTimingSample> slowest, DateTime windowStart)
+        RequestTimingSample[] samples, bool truncated, IReadOnlyList<RequestTimingSample> slowest, DateTime windowStart)
     {
         ArgumentNullException.ThrowIfNull(samples);
         ArgumentNullException.ThrowIfNull(slowest);
 
-        var routes = samples
-            .GroupBy(sample => (sample.Method, sample.Route))
-            .Select(group =>
+        DateTime? since = null;
+        foreach (var sample in samples)
+        {
+            if (since is null || sample.At < since)
+                since = sample.At;
+        }
+
+        Array.Sort(samples, static (left, right) =>
+        {
+            var byRoute = string.CompareOrdinal(left.Route, right.Route);
+            if (byRoute != 0) return byRoute;
+            var byMethod = string.CompareOrdinal(left.Method, right.Method);
+            return byMethod != 0 ? byMethod : left.DurationMs.CompareTo(right.DurationMs);
+        });
+
+        var routes = new List<RouteTimingSummary>();
+        for (var first = 0; first < samples.Length;)
+        {
+            var end = first + 1;
+            while (end < samples.Length
+                   && string.Equals(samples[end].Route, samples[first].Route, StringComparison.Ordinal)
+                   && string.Equals(samples[end].Method, samples[first].Method, StringComparison.Ordinal))
             {
-                var sorted = group.Select(sample => sample.DurationMs).Order().ToArray();
-                return new RouteTimingSummary(
-                    group.Key.Method,
-                    group.Key.Route,
-                    sorted.Length,
-                    Percentile(sorted, 0.50),
-                    Percentile(sorted, 0.95),
-                    Percentile(sorted, 0.99),
-                    sorted[^1]);
-            })
-            .OrderByDescending(route => route.P95Ms)
-            .ThenBy(route => route.Route, StringComparer.Ordinal)
-            .ThenBy(route => route.Method, StringComparer.Ordinal)
-            .ToList();
+                end++;
+            }
+            var count = end - first;
+            routes.Add(new RouteTimingSummary(
+                samples[first].Method,
+                samples[first].Route,
+                count,
+                samples[first + NearestRank(count, 0.50)].DurationMs,
+                samples[first + NearestRank(count, 0.95)].DurationMs,
+                samples[first + NearestRank(count, 0.99)].DurationMs,
+                samples[end - 1].DurationMs));
+            first = end;
+        }
+        routes.Sort(static (left, right) =>
+        {
+            var byP95 = right.P95Ms.CompareTo(left.P95Ms);
+            if (byP95 != 0) return byP95;
+            var byRoute = string.CompareOrdinal(left.Route, right.Route);
+            return byRoute != 0 ? byRoute : string.CompareOrdinal(left.Method, right.Method);
+        });
 
-        return new RequestPerformanceSummary(
-            windowStart,
-            slowest,
-            samples.Count == 0 ? null : samples.Min(sample => sample.At),
-            samples.Count,
-            truncated,
-            routes);
+        return new RequestPerformanceSummary(windowStart, slowest, since, samples.Length, truncated, routes);
     }
 
-    /// <summary>Nearest-rank percentile on an ascending array: the smallest value at or above the
-    /// requested share of the samples. No interpolation, so every figure is a request that happened.</summary>
-    public static double Percentile(double[] ascending, double share)
-    {
-        ArgumentNullException.ThrowIfNull(ascending);
-        if (ascending.Length == 0) return 0;
-        var rank = (int)Math.Ceiling(share * ascending.Length);
-        return ascending[Math.Clamp(rank - 1, 0, ascending.Length - 1)];
-    }
+    /// <summary>Nearest-rank percentile, as an index into <paramref name="count"/> ascending values: the
+    /// smallest value at or above the requested share. No interpolation, so every figure is a request that
+    /// happened.</summary>
+    public static int NearestRank(int count, double share) =>
+        Math.Clamp((int)Math.Ceiling(share * count) - 1, 0, Math.Max(count - 1, 0));
 }
