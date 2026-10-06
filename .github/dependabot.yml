@@ -1,0 +1,18 @@
+# Version guard: one PR per newer version, never a build failure.
+# No docker ecosystem: this repository ships no container image.
+version: 2
+updates:
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "sdk"]
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "nuget"]
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]

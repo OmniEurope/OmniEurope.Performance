@@ -1,0 +1,13 @@
+bin/
+obj/
+artifacts/
+.vs/
+.idea/
+*.user
+*.suo
+TestResults/
+coverage/
+*.nupkg
+*.snupkg
+
+.ylaunch.local

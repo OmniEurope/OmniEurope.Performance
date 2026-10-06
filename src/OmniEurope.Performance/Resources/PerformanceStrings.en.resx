@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Site performance</value></data>
+  <data name="Window" xml:space="preserve"><value>Requests measured: {0}, since {1} (UTC).</value></data>
+  <data name="WindowScope" xml:space="preserve"><value>Kept in memory, reset when the site restarts.</value></data>
+  <data name="Truncated" xml:space="preserve"><value>Cap reached: the oldest requests no longer count in these percentiles (the slowest calls list is not affected).</value></data>
+  <data name="NoSamples" xml:space="preserve"><value>No request measured yet.</value></data>
+  <data name="Slowest" xml:space="preserve"><value>Slowest calls</value></data>
+  <data name="SlowestScope" xml:space="preserve"><value>Since {0} (UTC), slowest first.</value></data>
+  <data name="ByRoute" xml:space="preserve"><value>By route</value></data>
+  <data name="Duration" xml:space="preserve"><value>Duration</value></data>
+  <data name="Method" xml:space="preserve"><value>Method</value></data>
+  <data name="Route" xml:space="preserve"><value>Route</value></data>
+  <data name="Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Date" xml:space="preserve"><value>Date (UTC)</value></data>
+  <data name="Calls" xml:space="preserve"><value>Calls</value></data>
+  <data name="P50" xml:space="preserve"><value>Median</value></data>
+  <data name="P95" xml:space="preserve"><value>95th percentile</value></data>
+  <data name="P99" xml:space="preserve"><value>99th percentile</value></data>
+  <data name="Max" xml:space="preserve"><value>Maximum</value></data>
+</root>

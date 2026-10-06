@@ -1,0 +1,24 @@
+@* SPDX-License-Identifier: EUPL-1.2 *@
+@namespace OmniEurope.Performance.Components
+@* The page MapOmniPerformance answers with: a complete HTML document, no stylesheet, no script. The
+   figures are read once per request; reloading the page reads them again. *@
+<!DOCTYPE html>
+<html lang="@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>@L["Title"]</title>
+</head>
+<body>
+    <main>
+        <h1>@L["Title"]</h1>
+        <PerformanceReportView Summary="@Recorder.Summarize()" />
+    </main>
+</body>
+</html>
+
+@code {
+    [Inject] private RequestPerformanceRecorder Recorder { get; set; } = default!;
+    [Inject] private IStringLocalizer<PerformanceStrings> L { get; set; } = default!;
+}
