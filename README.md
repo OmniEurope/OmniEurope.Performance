@@ -1,103 +1,107 @@
 <!-- SPDX-License-Identifier: EUPL-1.2 -->
 # OmniEurope.Performance
 
-Bibliothèque Razor qui ajoute à une application ASP.NET Core **une page de mesure des performances du site**,
-réduite au strict minimum : **aucun thème, aucun style, aucune dépendance tierce**, au plus 2 Mio de mémoire conservée.
-Un seul paquet NuGet, sous licence EUPL-1.2.
+A Razor class library that adds **a request performance page** to an ASP.NET Core application, kept to the bare
+minimum: **no theme, no styling, no third-party dependency**, at most 2 MiB of memory held. A single NuGet package,
+licensed under EUPL-1.2.
 
-## Utilisation
+## Usage
 
 ```powershell
 dotnet add package OmniEurope.Performance
 ```
 
 ```csharp
-builder.Services.AddOmniPerformance();                      // collecteur + ce que la page utilise
-app.MapOmniPerformance().RequireAuthorization("Admin");     // la page, sur /performance
+builder.Services.AddOmniPerformance();                      // collector + what the page needs
+app.MapOmniPerformance().RequireAuthorization("Admin");     // the page, on /performance
 ```
 
-`MapOmniPerformance("/admin/performance")` change l'adresse. Les chiffres décrivent le site : protégez la page
-avec la politique d'autorisation de l'application.
+`MapOmniPerformance("/admin/performance")` changes the address. The figures describe the site: protect the page with
+the application's authorization policy.
 
-Un hôte qui affiche les chiffres lui-même (une API qui sert `RequestPerformanceRecorder.Summarize()`, une page à
-ses couleurs) enregistre le collecteur seul avec `AddOmniPerformanceCollector()`, mêmes réglages : il ne reçoit ni
-les services des composants Razor ni la localisation. `MapOmniPerformance` refuse alors de démarrer, la page exige
+A host that shows the figures itself (an API serving `RequestPerformanceRecorder.Summarize()`, a page in its own
+look) registers the collector alone with `AddOmniPerformanceCollector()`, same settings: it gets neither the Razor
+component services nor localization. `MapOmniPerformance` then refuses to start, since the page requires
 `AddOmniPerformance()`.
 
-## Réglages
+## Settings
 
-Section `OmniPerformance` de la configuration de l'hôte (appsettings, variables `OmniPerformance__Window`...),
-puis `AddOmniPerformance(o => ...)`, qui a le dernier mot :
+The `OmniPerformance` section of the host configuration (appsettings, `OmniPerformance__Window` environment
+variables...), then `AddOmniPerformance(o => ...)`, which has the last word:
 
-| Réglage | Défaut | Rôle |
+| Setting | Default | Purpose |
 |---|---|---|
-| `Window` | `7.00:00:00` (7 jours) | Profondeur de la fenêtre, en mémoire, remise à zéro au redémarrage. |
-| `SlowestCount` | `20` | Nombre de pires requêtes listées sur toute la fenêtre. |
-| `MemoryLimitBytes` | `2097152` (2 Mio) | Mémoire conservée par le collecteur, allouée une fois au démarrage. |
-| `RouteFilter` | sondes, framework et fichiers statiques écartés | Routes mesurées (code seulement). |
+| `Window` | `7.00:00:00` (7 days) | How far back the figures go, in memory, reset on restart. |
+| `SlowestCount` | `20` | How many of the slowest requests of the whole window are listed. |
+| `MemoryLimitBytes` | `2097152` (2 MiB) | Memory held by the collector, allocated once at startup. |
+| `RouteFilter` | probes, framework and static files left out | Routes measured (code only). |
 
-Un réglage qui ne laisse rien à mesurer (fenêtre ou nombre nul, limite trop basse pour la fenêtre choisie) est
-refusé au démarrage de l'application.
+A setting that leaves nothing to measure (a zero window or count, a limit too low for the chosen window) is refused
+when the application starts.
 
-## Ce que fait le paquet
+## What the package does
 
-- **Collecteur côté serveur, sans middleware** : `RequestPerformanceRecorder` écoute la mesure de durée que
-  ASP.NET Core publie déjà pour chaque requête (`http.server.request.duration`), regroupée par modèle de route
-  (`/orders/{id}`, jamais l'adresse concrète). Deux hôtes dans un même processus ne mélangent jamais leurs chiffres.
-- **Mémoire bornée** : la limite est partagée entre la liste des pires requêtes (servie en premier) et un tampon
-  circulaire de requêtes pour les centiles, alloué une fois : quand il est plein, la requête la plus récente prend
-  la place de la plus ancienne. Rien ne grandit avec le trafic ; un test mesure les octets alloués par une semaine
-  pleine et vérifie qu'ils restent sous la limite. Hors de cette limite : le cache des modèles de route (un par
-  route de l'application) et, le temps d'afficher la page, une seule copie du tampon pour les centiles, elle aussi
-  mesurée sous la limite par un test.
-- **Les pires requêtes d'abord** : les `SlowestCount` requêtes les plus lentes de toute la fenêtre sont gardées à
-  part du tampon (les `SlowestCount` pires de chaque heure), donc un site chargé ne les perd pas. Seule limite :
-  sur l'heure la plus ancienne, en partie sortie de la fenêtre, une requête qui n'était pas dans le palmarès de
-  son heure ne peut pas remplacer une requête expirée.
-- **Centiles par route** : nombre d'appels, médiane, 95e et 99e centiles, maximum, calculés sur les requêtes du
-  tampon ; la page dit depuis quand elles comptent et quand le roulement en a écarté. Rang le plus proche, sans
-  interpolation : chaque chiffre est une requête réelle.
-- **Page** : un document HTML complet, servi par un point d'accès ordinaire (indépendant du routeur Blazor de
-  l'application) et exclu des mesures, pour ne jamais figurer parmi les appels lents. Textes en français, anglais
-  fourni selon la culture de la requête (`UseRequestLocalization`).
-- **Pour habiller la page** : `PerformanceReportView` affiche les chiffres seuls (sans `<html>`) à partir de
-  `RequestPerformanceRecorder.Summarize()`, pour être placée dans une page aux couleurs de l'application.
-- **Pour une page en direct** : `RequestPerformanceRecorder.WaitForChangeAsync(ct)` se termine dès qu'une requête
-  mesurée a été enregistrée depuis l'attente précédente ; les requêtes arrivées entre deux attentes ne donnent qu'un
-  signal, une route écartée par le filtre n'en donne aucun. Il est fait pour un seul consommateur (un service de fond
-  qui prévient les pages ouvertes et espace lui-même ses annonces). Si les pages relisent les chiffres par un point
-  d'accès de l'application, excluez-le des mesures (`.DisableHttpMetrics()`), sinon chaque lecture relance le signal.
+- **Server-side collector, no middleware**: `RequestPerformanceRecorder` listens to the duration measurement
+  ASP.NET Core already publishes for every request (`http.server.request.duration`), grouped by route template
+  (`/orders/{id}`, never the concrete address). Two hosts in one process never mix their figures.
+- **Bounded memory**: the limit is shared between the list of the slowest requests (served first) and a ring of
+  requests for the percentiles, allocated once: when it is full, the newest request takes the oldest one's place.
+  Nothing grows with traffic; a test measures the bytes allocated by a full week and checks they stay under the
+  limit. Outside that limit: the route template cache (one entry per application route) and, while the page renders,
+  a single copy of the ring for the percentiles, also measured under the limit by a test.
+- **Slowest requests first**: the `SlowestCount` slowest requests of the whole window are kept apart from the ring
+  (the `SlowestCount` worst of each hour), so a busy site never loses them. One limit: on the oldest hour, partly out
+  of the window, a request that was not in its hour's ranking cannot replace an expired one.
+- **Per-route percentiles**: call count, median, 95th and 99th percentiles, maximum, computed on the requests in the
+  ring; the page states since when they count and when the ring dropped some. Nearest rank, no interpolation: every
+  figure is a real request.
+- **Page**: a complete HTML document, served by an ordinary endpoint (independent of the application's Blazor
+  router) and left out of the measurements, so it never ranks among the slow calls. Texts in French, English served
+  according to the request culture (`UseRequestLocalization`).
+- **To style the page**: `PerformanceReportView` renders the figures alone (no `<html>`) from
+  `RequestPerformanceRecorder.Summarize()`, to be placed in a page in the application's look.
+- **For a live page**: `RequestPerformanceRecorder.WaitForChangeAsync(ct)` completes as soon as a measured request
+  has been recorded since the previous wait; the requests arriving between two waits give a single signal, a route
+  the filter leaves out gives none. It is meant for one consumer (a background service that tells the open pages and
+  spaces its announcements itself): two simultaneous waits share the signals, each one waking a single wait. If the
+  pages read the figures through an application endpoint, leave it out of the measurements (`.DisableHttpMetrics()`),
+  otherwise every read raises the signal again.
 
-## Ce qu'il ne fait pas, volontairement
+## What it deliberately does not do
 
-- **Aucun thème ni style** : pas de CSS, pas de script, pas d'icônes, pas de mise en page. Le balisage est
-  sémantique (titres, tableaux) pour rester lisible sans feuille de style. L'habillage appartient à l'application
-  ou à sa bibliothèque de composants, qui dépend de ce paquet, jamais l'inverse.
-- **Pas de Blazor WebAssembly autonome** : le collecteur vit dans le processus serveur, le paquet exige un hôte
-  ASP.NET Core (Blazor Web App, Blazor Server, API).
-- Rien au-delà de la page : la page fournie ne se rafraîchit pas seule (recharger la page relit les chiffres ;
-  le signal ci-dessus sert aux pages de l'application), pas d'historique au-delà de la fenêtre ni après un
-  redémarrage, pas d'envoi de données.
+- **No theme or styling**: no CSS, no script, no icons, no layout. The markup is semantic (headings, tables) so it
+  stays readable without a stylesheet. Styling belongs to the application or its component library, which depends on
+  this package, never the other way round.
+- **No standalone Blazor WebAssembly**: the collector lives in the server process, the package requires an
+  ASP.NET Core host (Blazor Web App, Blazor Server, API).
+- Nothing beyond the page: the page provided does not refresh itself (reloading it reads the figures again; the
+  signal above serves the application's own pages), no history beyond the window or across a restart, no data sent
+  anywhere.
 
-## Dépendances
+## Dependencies
 
-- Exécution : le framework partagé `Microsoft.AspNetCore.App` seulement, aucun paquet tiers.
-- Tests uniquement : `xunit.v3` (Apache-2.0), `bunit` (MIT), `Microsoft.AspNetCore.TestHost` (MIT),
-  `coverlet.MTP` (MIT), `Microsoft.Testing.Extensions.TrxReport` (MIT).
+- Runtime: the `Microsoft.AspNetCore.App` shared framework only, no third-party package.
+- Tests only: `xunit.v3` (Apache-2.0), `bunit` (MIT), `Microsoft.AspNetCore.TestHost` (MIT), `coverlet.MTP` (MIT),
+  `Microsoft.Testing.Extensions.TrxReport` (MIT).
 
-## Développement
+## Development
 
 ```powershell
-.\ylaunch.ps1 -t     # compile et lance les tests
-.\ylaunch.ps1 -c     # couverture, puis contrôle CRAP (aucune méthode au-dessus de 30)
+.\ylaunch.ps1 -t     # build and run the tests
+.\ylaunch.ps1 -c     # coverage, blocking floors, then the CRAP gate
 ```
 
-Avant de compiler, le lanceur signale, sans bloquer, un SDK .NET plus récent que celui utilisé et les paquets NuGet
-en retard : le dépôt n'ouvre aucune demande de mise à jour automatique.
+`-c` fails under 95 % of lines or 85 % of branches covered (`scripts/coverage-gate.ps1`), then if a method scores
+above 30 on CRAP (`scripts/crap-gate.ps1`, justified exceptions in `.config/crap-exceptions.json`, none so far).
+Continuous integration applies the same checks.
 
-Git flow : `main` pour les versions publiées, `develop` pour l'intégration, `feature/*` pour le travail. Une
-version GitHub publiée (`0.1.0`) déclenche la publication NuGet du paquet validé par l'intégration continue.
+Before building, the launcher reports, without blocking, a .NET SDK newer than the one in use and outdated NuGet
+packages: the repository opens no automatic update request.
+
+Git flow: `main` for published versions, `develop` for integration, `feature/*` for work. A published GitHub release
+(tag `1.0.0` or `v1.0.0`, equal to the package version) triggers the NuGet publication of the package validated by
+continuous integration.
 
 ## Licence
 
-EUPL-1.2, voir [LICENSE](LICENSE).
+EUPL-1.2, see [LICENSE](LICENSE).

@@ -66,7 +66,3 @@ public static class PerformanceServiceCollectionExtensions
         return services;
     }
 }
-
-/// <summary>Marks a host registered by <see cref="PerformanceServiceCollectionExtensions.AddOmniPerformance"/>:
-/// the page's services are there, so <c>MapOmniPerformance</c> may map it.</summary>
-internal sealed class PerformancePageServices;

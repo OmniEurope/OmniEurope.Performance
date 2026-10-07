@@ -4,6 +4,16 @@ Les changements notables de ce projet seront documentés ici selon le format Kee
 
 ## [Unreleased]
 
+### Added
+
+- Tests de concurrence du signal de changement : des requêtes simultanées ne lèvent jamais d'exception sur le
+  chemin de la requête et réveillent l'attente ; deux attentes simultanées se partagent les signaux, chacun n'en
+  réveillant qu'une.
+
+### Changed
+
+- README, page du paquet sur NuGet, rédigé en anglais.
+
 ## [1.0.0] - 2026-10-07
 
 ### Added
