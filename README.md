@@ -58,8 +58,6 @@ when the application starts.
 - **Page**: a complete HTML document, served by an ordinary endpoint (independent of the application's Blazor
   router) and left out of the measurements, so it never ranks among the slow calls. Texts in French, English served
   according to the request culture (`UseRequestLocalization`).
-- **To style the page**: `PerformanceReportView` renders the figures alone (no `<html>`) from
-  `RequestPerformanceRecorder.Summarize()`, to be placed in a page in the application's look.
 - **For a live page**: `RequestPerformanceRecorder.WaitForChangeAsync(ct)` completes as soon as a measured request
   has been recorded since the previous wait; the requests arriving between two waits give a single signal, a route
   the filter leaves out gives none. It is meant for one consumer (a background service that tells the open pages and

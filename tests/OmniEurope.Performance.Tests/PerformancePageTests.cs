@@ -1,0 +1,111 @@
+// SPDX-License-Identifier: EUPL-1.2
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using OmniEurope.Performance.Components;
+
+namespace OmniEurope.Performance.Tests;
+
+/// <summary>
+/// The figures as the page writes them from a recorder fed by hand: semantic tables without a class or a style,
+/// the texts from the package's resources in French (neutral) and English.
+/// </summary>
+public sealed class PerformancePageTests : IDisposable
+{
+    private static readonly DateTimeOffset ProcessStart = new(2026, 9, 28, 0, 0, 0, TimeSpan.Zero);
+    private readonly CultureInfo _culture = CultureInfo.CurrentCulture;
+    private readonly CultureInfo _uiCulture = CultureInfo.CurrentUICulture;
+    private readonly BunitContext _context = new();
+    private readonly ManualClock _clock = new(ProcessStart);
+    private TestRecorder? _recorder;
+
+    public PerformancePageTests() => _context.Services.AddLocalization();
+
+    public void Dispose()
+    {
+        _context.Dispose();
+        _recorder?.Dispose();
+        CultureInfo.CurrentCulture = _culture;
+        CultureInfo.CurrentUICulture = _uiCulture;
+    }
+
+    [Fact]
+    public void WithSamples_WritesTheWindow_TheSlowestCalls_AndOneLinePerRoute()
+    {
+        UseCulture("fr-FR");
+        var recorder = UseRecorder(new PerformanceOptions { SlowestCount = 1 });
+        _clock.Advance(new DateTimeOffset(2026, 10, 6, 8, 30, 0, TimeSpan.Zero) - ProcessStart);
+        recorder.Record("orders/{id}", "GET", 200, 12);
+        recorder.Record("orders/{id}", "GET", 200, 980);
+        _clock.Advance(TimeSpan.FromMinutes(5));
+        recorder.Record("orders/{id}", "GET", 200, 1234);
+
+        var page = _context.Render<PerformancePage>();
+
+        Assert.Contains("Depuis le 2026-09-29 08:35:00 (UTC), les plus lents d'abord.", page.Markup);
+        Assert.Contains("Requêtes mesurées : 3, depuis le 2026-10-06 08:30:00 (UTC).", page.Markup);
+        Assert.DoesNotContain("Plafond atteint", page.Markup);
+        var tables = page.FindAll("table");
+        Assert.Equal(2, tables.Count);
+        Assert.Equal(["Appels les plus lents", "Par route"], page.FindAll("h2").Select(h => h.TextContent));
+        var slowest = tables[0].QuerySelectorAll("tbody td").Select(td => td.TextContent).ToArray();
+        Assert.Equal(["1,23 s", "GET", "/orders/{id}", "200", "2026-10-06 08:35:00"], slowest);
+        var route = tables[1].QuerySelectorAll("tbody td").Select(td => td.TextContent).ToArray();
+        Assert.Equal(["GET", "/orders/{id}", "3", "980 ms", "1,23 s", "1,23 s", "1,23 s"], route);
+        Assert.Empty(page.FindAll("[class], [style], style, link, script"));
+    }
+
+    [Fact]
+    public void WithoutSamples_SaysSo_AndDrawsNoTable()
+    {
+        UseCulture("fr-FR");
+        UseRecorder(new PerformanceOptions());
+
+        var page = _context.Render<PerformancePage>();
+
+        Assert.Contains("Aucune requête mesurée pour l'instant.", page.Markup);
+        Assert.Empty(page.FindAll("table"));
+    }
+
+    [Fact]
+    public void PastTheCap_SaysThePercentilesLostTheOldest_InEnglish()
+    {
+        UseCulture("en-GB");
+        // Room for a single request in the ring: the second one overwrites the first inside the window.
+        var limit = RequestPerformanceRecorder.FixedOverheadBytes + SlowestRequests.ReservedBytes(20, TimeSpan.FromDays(7))
+            + Unsafe.SizeOf<RequestTimingSample>();
+        var recorder = UseRecorder(new PerformanceOptions { MemoryLimitBytes = limit });
+        recorder.Record("orders", "GET", 200, 10);
+        recorder.Record("orders", "GET", 200, 20);
+
+        var page = _context.Render<PerformancePage>();
+
+        Assert.Contains("Cap reached: the oldest requests no longer count in these percentiles (the slowest calls list is not affected).", page.Markup);
+        Assert.Equal(["Slowest calls", "By route"], page.FindAll("h2").Select(h => h.TextContent));
+    }
+
+    [Theory]
+    [InlineData("en-GB", "en")]
+    [InlineData("fr-BE", "fr")]
+    [InlineData("", "fr")] // invariant culture: its two-letter name "iv" is no language
+    public void ThePageLanguage_IsTheUiCultures_OrTheNeutralFrench(string culture, string expected)
+    {
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+
+        Assert.Equal(expected, PerformancePage.Language);
+    }
+
+    private RequestPerformanceRecorder UseRecorder(PerformanceOptions options)
+    {
+        _recorder = new TestRecorder(_clock, options);
+        _context.Services.AddSingleton(_recorder.Recorder);
+        return _recorder.Recorder;
+    }
+
+    private static void UseCulture(string name)
+    {
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(name);
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(name);
+    }
+}

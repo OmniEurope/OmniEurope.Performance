@@ -4,6 +4,12 @@ Notable changes to this project are documented here, following the Keep a Change
 
 ## [Unreleased]
 
+### Removed
+
+- `PerformanceReportView` and the public `PerformanceStrings` type: the page renders its figures itself and its texts
+  are internal. A host that wants its own look renders `RequestPerformanceRecorder.Summarize()` (breaking change for a
+  host that used either type).
+
 ## [1.0.1] - 2026-10-07
 
 ### Added
