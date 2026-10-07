@@ -4,6 +4,8 @@ Notable changes to this project are documented here, following the Keep a Change
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-07
+
 ### Removed
 
 - `PerformanceReportView` and the public `PerformanceStrings` type: the page renders its figures itself and its texts
