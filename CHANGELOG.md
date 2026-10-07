@@ -4,6 +4,19 @@ Les changements notables de ce projet seront documentés ici selon le format Kee
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-07
+
+### Added
+
+- `AddOmniPerformanceCollector` : le collecteur seul, sans les services de la page (composants Razor, localisation),
+  pour un hôte qui affiche les chiffres lui-même ; `MapOmniPerformance` refuse un tel hôte au démarrage.
+- Planchers de couverture bloquants, dans le lanceur (`-c`) et l'intégration continue : 95 % des lignes, 85 % des
+  branches.
+
+### Changed
+
+- Première version stable : l'API publique suit désormais le versionnage sémantique.
+
 ## [0.2.0] - 2026-10-06
 
 ### Added

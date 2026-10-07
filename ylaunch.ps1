@@ -9,7 +9,7 @@
     scripts\ylaunch-core.ps1, a versioned shared core (never edit the copy). .\ylaunch.ps1 -hl for the workflow.
 .EXAMPLE
     .\ylaunch.ps1 -t          Build + unit tests + exit
-    .\ylaunch.ps1 -c          Unit tests with coverage, then the CRAP gate
+    .\ylaunch.ps1 -c          Unit tests with coverage, then the coverage floors and the CRAP gate
 #>
 [CmdletBinding(PositionalBinding = $false)]
 param(
@@ -57,9 +57,12 @@ try { . $corePath } catch { Write-Host "ERROR: cannot load ${corePath}: $($_.Exc
 $options = @{}
 foreach ($key in $PSBoundParameters.Keys) { $options[$key] = $PSBoundParameters[$key] }
 Invoke-YLaunch -Config $LaunchConfig -Root $PSScriptRoot -Options $options
-# A green coverage run (-c) also passes the CRAP gate, no method above 30 outside
-# .config/crap-exceptions.json. Until the launcher core runs the gate itself.
+# A green coverage run (-c) also passes the coverage floors (95 % of lines, 85 % of branches, on the merged
+# report) and the CRAP gate, no method above 30 outside .config/crap-exceptions.json. Until the launcher
+# core runs the gates itself.
 if ($Coverage -and $script:YLaunchExitCode -eq 0) {
+    & pwsh -NoProfile -File (Join-Path $PSScriptRoot "scripts\coverage-gate.ps1") -CoverageRoot (Join-Path $PSScriptRoot "TestResults\CoverageReport") -MinLine 95 -MinBranch 85
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     & pwsh -NoProfile -File (Join-Path $PSScriptRoot "scripts\crap-gate.ps1") -CoverageRoot (Join-Path $PSScriptRoot "TestResults\Coverage")
     exit $LASTEXITCODE
 }

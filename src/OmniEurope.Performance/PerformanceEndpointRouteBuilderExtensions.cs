@@ -19,10 +19,16 @@ public static class PerformanceEndpointRouteBuilderExtensions
     /// </summary>
     /// <param name="endpoints">The host's endpoints.</param>
     /// <param name="pattern">The page's address, <see cref="DefaultPattern"/> by default.</param>
+    /// <exception cref="InvalidOperationException">The host registered the collector alone
+    /// (<see cref="Microsoft.Extensions.DependencyInjection.PerformanceServiceCollectionExtensions.AddOmniPerformanceCollector"/>)
+    /// or nothing at all: the page would fail on its first request, so mapping it fails at startup.</exception>
     public static RouteHandlerBuilder MapOmniPerformance(this IEndpointRouteBuilder endpoints, string pattern = DefaultPattern)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         ArgumentException.ThrowIfNullOrWhiteSpace(pattern);
+        if (endpoints.ServiceProvider.GetService(typeof(Microsoft.Extensions.DependencyInjection.PerformancePageServices)) is null)
+            throw new InvalidOperationException(
+                "The performance page needs AddOmniPerformance(): AddOmniPerformanceCollector() registers the measurement without the page.");
         // Left out of the request metrics: reading the figures must not rank the page among the slowest calls.
         return endpoints.MapGet(pattern, static () => new RazorComponentResult<PerformancePage>()).DisableHttpMetrics();
     }

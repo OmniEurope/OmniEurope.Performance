@@ -39,6 +39,9 @@ jobs:
           if ([int]$counters.total -eq 0) { throw 'The TRX holds no test.' }
           if (-not (Get-ChildItem artifacts/coverage -Filter '*.cobertura*.xml' -Recurse -File)) { throw 'No Cobertura report.' }
           "Tests: $($counters.passed) passed of $($counters.total)."
+      - name: Coverage floors
+        shell: pwsh
+        run: ./scripts/coverage-gate.ps1 -CoverageRoot artifacts/coverage -MinLine 95 -MinBranch 85
       - name: CRAP gate
         shell: pwsh
         run: ./scripts/crap-gate.ps1 -CoverageRoot artifacts/coverage

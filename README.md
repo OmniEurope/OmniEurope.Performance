@@ -19,6 +19,11 @@ app.MapOmniPerformance().RequireAuthorization("Admin");     // la page, sur /per
 `MapOmniPerformance("/admin/performance")` change l'adresse. Les chiffres décrivent le site : protégez la page
 avec la politique d'autorisation de l'application.
 
+Un hôte qui affiche les chiffres lui-même (une API qui sert `RequestPerformanceRecorder.Summarize()`, une page à
+ses couleurs) enregistre le collecteur seul avec `AddOmniPerformanceCollector()`, mêmes réglages : il ne reçoit ni
+les services des composants Razor ni la localisation. `MapOmniPerformance` refuse alors de démarrer, la page exige
+`AddOmniPerformance()`.
+
 ## Réglages
 
 Section `OmniPerformance` de la configuration de l'hôte (appsettings, variables `OmniPerformance__Window`...),

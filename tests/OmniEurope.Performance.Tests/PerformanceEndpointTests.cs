@@ -102,6 +102,47 @@ public sealed class PerformanceEndpointTests
     }
 
     [Fact]
+    public async Task TheCollectorAlone_MeasuresTheSite_WithoutThePageServices()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        builder.Services.AddOmniPerformanceCollector(options => options.Window = TimeSpan.FromHours(24));
+        await using var app = builder.Build();
+        app.MapGet("/api/orders", () => "ok");
+        var ct = TestContext.Current.CancellationToken;
+        await app.StartAsync(ct);
+        using var client = app.GetTestClient();
+
+        await client.GetAsync("/api/orders", ct);
+        await WaitForRouteAsync(app, "/api/orders", ct);
+
+        Assert.Null(app.Services.GetService<Microsoft.Extensions.Localization.IStringLocalizerFactory>());
+        Assert.Null(app.Services.GetService<PerformancePageServices>());
+        Assert.Equal(TimeSpan.FromHours(24), app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<PerformanceOptions>>().Value.Window);
+    }
+
+    [Fact]
+    public void ThePage_OnAHostWithTheCollectorAlone_IsRefusedAtStartup()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddOmniPerformanceCollector();
+        var app = builder.Build();
+
+        var refusal = Assert.Throws<InvalidOperationException>(() => app.MapOmniPerformance());
+        Assert.Contains("AddOmniPerformance()", refusal.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheCollectorThenThePage_RegisterOneRecorder_AndServeThePage()
+    {
+        await using var app = await StartAsync(_ => { }, services => services.AddOmniPerformanceCollector().AddOmniPerformance());
+        using var client = app.GetTestClient();
+
+        Assert.Single(app.Services.GetServices<RequestPerformanceRecorder>());
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(PerformanceEndpointRouteBuilderExtensions.DefaultPattern, TestContext.Current.CancellationToken)).StatusCode);
+    }
+
+    [Fact]
     public async Task Settings_ComeFromTheHostConfiguration_ThenTheCodeOverrides()
     {
         var builder = WebApplication.CreateBuilder();

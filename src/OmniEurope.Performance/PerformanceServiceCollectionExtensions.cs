@@ -21,6 +21,30 @@ public static class PerformanceServiceCollectionExtensions
     /// the <see cref="ConfigurationSection"/> section, so it has the last word.</param>
     public static IServiceCollection AddOmniPerformance(this IServiceCollection services, Action<PerformanceOptions>? configure = null)
     {
+        services.AddOmniPerformanceCollector(configure);
+        if (services.Any(descriptor => descriptor.ServiceType == typeof(PerformancePageServices)))
+            return services;
+
+        services.AddLocalization();
+        services.AddRazorComponents();
+        services.AddSingleton<PerformancePageServices>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers <see cref="RequestPerformanceRecorder"/> alone, without the page: for a host that shows the
+    /// figures itself (an API serving <see cref="RequestPerformanceRecorder.Summarize"/>, a page of its own), so
+    /// it carries no Razor component or localization services it does not use.
+    /// <see cref="Microsoft.AspNetCore.Builder.PerformanceEndpointRouteBuilderExtensions.MapOmniPerformance"/>
+    /// refuses such a host: the page needs <see cref="AddOmniPerformance"/>. Safe to call more than once, and
+    /// beside <see cref="AddOmniPerformance"/>: the recorder is registered once and every
+    /// <paramref name="configure"/> is applied.
+    /// </summary>
+    /// <param name="services">The host's services.</param>
+    /// <param name="configure">Optional: the window, the counts kept and the routes measured; applied after
+    /// the <see cref="ConfigurationSection"/> section, so it has the last word.</param>
+    public static IServiceCollection AddOmniPerformanceCollector(this IServiceCollection services, Action<PerformanceOptions>? configure = null)
+    {
         ArgumentNullException.ThrowIfNull(services);
         var first = !services.Any(descriptor => descriptor.ServiceType == typeof(RequestPerformanceRecorder));
 
@@ -34,8 +58,6 @@ public static class PerformanceServiceCollectionExtensions
             return services;
 
         services.AddMetrics();
-        services.AddLocalization();
-        services.AddRazorComponents();
         services.AddSingleton(provider => new RequestPerformanceRecorder(
             provider.GetRequiredService<IOptions<PerformanceOptions>>(),
             provider.GetService<TimeProvider>() ?? TimeProvider.System,
@@ -44,3 +66,7 @@ public static class PerformanceServiceCollectionExtensions
         return services;
     }
 }
+
+/// <summary>Marks a host registered by <see cref="PerformanceServiceCollectionExtensions.AddOmniPerformance"/>:
+/// the page's services are there, so <c>MapOmniPerformance</c> may map it.</summary>
+internal sealed class PerformancePageServices;
