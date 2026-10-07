@@ -1,22 +1,22 @@
 <!-- SPDX-License-Identifier: EUPL-1.2 -->
-# Plans d'implémentation
+# Implementation plans
 
-Tous les plans numérotés du dépôt vivent ici. Le code et les tests restent les sources structurelles ;
-un plan décrit un travail, pas l'état du produit.
+Every numbered plan of the repository lives here. The code and the tests remain the structural sources; a plan
+describes a piece of work, not the state of the product.
 
-## Nomenclature
+## Naming
 
-- Format obligatoire : `PLAN-NNN-description-minimale.md`.
-- `NNN` est dense et suit l'ordre du registre ci-dessous.
-- Un plan terminé est déplacé dans `archive/` ; il garde son numéro.
-- Un plan numéroté vit ici et nulle part ailleurs.
+- Mandatory format: `PLAN-NNN-minimal-description.md`.
+- `NNN` is dense and follows the order of the registry below.
+- A finished plan moves to `archive/`; it keeps its number.
+- A numbered plan lives here and nowhere else.
 
-## Plans actifs
+## Active plans
 
-Aucun.
+None.
 
-## Plans archivés
+## Archived plans
 
-| Plan | Résultat | ADR |
+| Plan | Outcome | ADR |
 |---|---|---|
-| [PLAN-001](archive/PLAN-001-perimetre-initial.md) | Périmètre initial livré, 0.1.0 publiée sur NuGet | Aucun |
+| [PLAN-001](archive/PLAN-001-initial-scope.md) | Initial scope delivered, 0.1.0 published on NuGet | None |

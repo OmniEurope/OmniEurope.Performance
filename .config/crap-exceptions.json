@@ -1,5 +1,5 @@
 {
-  "$comment": "Contrôle CRAP (scripts/crap-gate.ps1). Méthodes et fichiers admis au-dessus d'un score CRAP de 30, chacun avec sa raison. Une entrée est une décision du propriétaire, jamais ajoutée pour faire passer le contrôle.",
+  "$comment": "CRAP gate (scripts/crap-gate.ps1). Methods and files admitted above a CRAP score of 30, each with its reason. An entry is an owner decision, never added to make the gate pass.",
   "exceptions": [],
   "excludedFiles": []
 }

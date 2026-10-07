@@ -1,74 +1,74 @@
-# Journal des modifications
+# Changelog
 
-Les changements notables de ce projet seront documentés ici selon le format Keep a Changelog.
+Notable changes to this project are documented here, following the Keep a Changelog format.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-07
+
 ### Added
 
-- Tests de concurrence du signal de changement : des requêtes simultanées ne lèvent jamais d'exception sur le
-  chemin de la requête et réveillent l'attente ; deux attentes simultanées se partagent les signaux, chacun n'en
-  réveillant qu'une.
+- Concurrency tests of the change signal: simultaneous requests never throw on the request path and wake the wait;
+  two simultaneous waits share the signals, each one waking a single wait.
 
 ### Changed
 
-- README, page du paquet sur NuGet, rédigé en anglais.
+- README, the package page on NuGet, written in English.
+- Changelog and repository documentation written in English.
 
 ## [1.0.0] - 2026-10-07
 
 ### Added
 
-- `AddOmniPerformanceCollector` : le collecteur seul, sans les services de la page (composants Razor, localisation),
-  pour un hôte qui affiche les chiffres lui-même ; `MapOmniPerformance` refuse un tel hôte au démarrage.
-- Planchers de couverture bloquants, dans le lanceur (`-c`) et l'intégration continue : 95 % des lignes, 85 % des
-  branches.
+- `AddOmniPerformanceCollector`: the collector alone, without the page's services (Razor components, localization),
+  for a host that shows the figures itself; `MapOmniPerformance` refuses such a host at startup.
+- Blocking coverage floors, in the launcher (`-c`) and continuous integration: 95 % of lines, 85 % of branches.
 
 ### Changed
 
-- Première version stable : l'API publique suit désormais le versionnage sémantique.
+- First stable version: the public API now follows semantic versioning.
 
 ## [0.2.0] - 2026-10-06
 
 ### Added
 
-- Signal de changement `RequestPerformanceRecorder.WaitForChangeAsync` : se termine dès qu'une requête mesurée est
-  enregistrée, plusieurs requêtes entre deux attentes ne donnent qu'un signal ; il permet à une page de
-  l'application de se mettre à jour en direct.
+- Change signal `RequestPerformanceRecorder.WaitForChangeAsync`: completes as soon as a measured request is recorded,
+  several requests between two waits give a single signal; it lets an application page update live.
 
 ### Changed
 
-- Description du paquet et README : la limite de 2 Mio porte sur la mémoire conservée par le collecteur ; le README
-  précise ce qui reste hors de cette limite (cache des modèles de route, copie du tampon le temps d'afficher la page).
+- Package description and README: the 2 MiB limit applies to the memory held by the collector; the README states
+  what stays outside that limit (route template cache, copy of the ring while the page renders).
 
 ### Fixed
 
-- Le filtre par défaut écarte les familles `/health`, `/_framework`, `/_content` et `/_blazor` par segment entier :
-  `/healthcare/{id}` est de nouveau mesuré.
-- La page n'est plus mesurée elle-même : sa lecture ne figure plus parmi les appels les plus lents.
-- `<html lang>` vaut `fr` sous la culture invariante (au lieu du code inexistant `iv`).
-- L'affichage de la page n'alloue plus qu'une copie du tampon (environ 1,9 Mio au lieu de plusieurs Mio) : les centiles
-  sont lus sur la copie triée sur place, le palmarès sort d'un tas borné.
+- The default filter leaves out the `/health`, `/_framework`, `/_content` and `/_blazor` families by whole segment:
+  `/healthcare/{id}` is measured again.
+- The page no longer measures itself: reading it no longer ranks among the slowest calls.
+- `<html lang>` is `fr` under the invariant culture (instead of the non-existent `iv` code).
+- Rendering the page allocates a single copy of the ring (about 1.9 MiB instead of several MiB): the percentiles are
+  read from the copy sorted in place, the ranking comes from a bounded heap.
 
 ### Removed
 
-- Configuration des mises à jour automatiques des dépendances : plus aucune demande de mise à jour automatique ; le lanceur local signale les paquets
-  et le SDK en retard.
+- Automatic dependency update configuration: no more automatic update requests; the local launcher reports outdated
+  packages and SDK.
 
 ## [0.1.0] - 2026-10-06
 
 ### Added
 
-- Squelette du dépôt : solution, projet `src/OmniEurope.Performance`, licence EUPL-1.2, lanceur
-  `ylaunch.ps1`, contrôle CRAP (`scripts/crap-gate.ps1`).
-- Collecteur `RequestPerformanceRecorder` : durées de requête par modèle de route, lues sur la mesure
-  `http.server.request.duration` d'ASP.NET Core, sans middleware ; fenêtre de 7 jours, 2 Mio de mémoire conservée au plus, avec roulement, pires requêtes gardées
-  hors roulement, réglages `OmniPerformance`.
-- Page `/performance` (`AddOmniPerformance`, `MapOmniPerformance`) : document HTML sans style, appels les plus
-  lents et centiles par route ; `PerformanceReportView` pour un hôte qui l'habille. Textes français et anglais.
-- Suite de tests `tests/OmniEurope.Performance.Tests` (xUnit v3, bUnit, hôte de test ASP.NET Core, mesure mémoire).
-- Intégration continue et publication NuGet (`.github/workflows`), paquet de symboles `.snupkg`.
+- Repository skeleton: solution, `src/OmniEurope.Performance` project, EUPL-1.2 licence, `ylaunch.ps1` launcher,
+  CRAP gate (`scripts/crap-gate.ps1`).
+- `RequestPerformanceRecorder` collector: request durations per route template, read from the ASP.NET Core
+  `http.server.request.duration` measurement, without middleware; 7-day window, at most 2 MiB of memory held, with a
+  rolling ring, slowest requests kept outside the ring, `OmniPerformance` settings.
+- `/performance` page (`AddOmniPerformance`, `MapOmniPerformance`): unstyled HTML document, slowest calls and
+  per-route percentiles; `PerformanceReportView` for a host that styles it. French and English texts.
+- Test suite `tests/OmniEurope.Performance.Tests` (xUnit v3, bUnit, ASP.NET Core test host, memory measurement).
+- Continuous integration and NuGet publication (`.github/workflows`), `.snupkg` symbol package.
 
 ### Changed
 
-- Le paquet référence le framework partagé `Microsoft.AspNetCore.App` au lieu du paquet
-  `Microsoft.AspNetCore.Components.Web` : il exige un hôte ASP.NET Core.
+- The package references the `Microsoft.AspNetCore.App` shared framework instead of the
+  `Microsoft.AspNetCore.Components.Web` package: it requires an ASP.NET Core host.
