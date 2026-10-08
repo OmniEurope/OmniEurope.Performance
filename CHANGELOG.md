@@ -4,6 +4,8 @@ Notable changes to this project are documented here, following the Keep a Change
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-08
+
 ### Fixed
 
 - The percentiles no longer count a request already outside the window when two simultaneous requests reached the
