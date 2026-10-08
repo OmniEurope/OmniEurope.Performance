@@ -187,6 +187,8 @@ public sealed class RequestPerformanceTests
     [InlineData(0, 20, 2 * 1024 * 1024)]
     [InlineData(1, 0, 2 * 1024 * 1024)]
     [InlineData(168, 20, 100_000)] // the slowest list of 7 days alone needs more than 100 kB
+    [InlineData(1, 20, long.MinValue)] // must not wrap around into a huge budget
+    [InlineData(1, 20, -1)]
     public void Recorder_RefusesASettingThatLeavesNothingToMeasure(int windowHours, int slowestCount, long memoryLimitBytes)
     {
         var options = new PerformanceOptions

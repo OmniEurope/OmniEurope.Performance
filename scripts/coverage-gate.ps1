@@ -3,6 +3,7 @@
 # Reads exactly one Cobertura report under -CoverageRoot: the merged report of the launcher
 # (TestResults/CoverageReport/Cobertura.xml) or the single suite's report in CI. Several reports are refused
 # rather than summed, since two suites covering the same library would count its lines twice.
+# The floors below are the only definition: the launcher and CI call the script without overriding them.
 
 [CmdletBinding()]
 param(

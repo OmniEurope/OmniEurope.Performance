@@ -81,6 +81,8 @@ when the application starts.
 - Runtime: the `Microsoft.AspNetCore.App` shared framework only, no third-party package.
 - Tests only: `xunit.v3` (Apache-2.0), `bunit` (MIT), `Microsoft.AspNetCore.TestHost` (MIT), `coverlet.MTP` (MIT),
   `Microsoft.Testing.Extensions.TrxReport` (MIT).
+- Development only: `dotnet-reportgenerator-globaltool` (Apache-2.0), a local tool pinned in `.config/dotnet-tools.json`
+  that merges the coverage reports for `-c`; restored on demand, no global install needed.
 
 ## Development
 

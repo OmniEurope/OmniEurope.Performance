@@ -61,7 +61,7 @@ Invoke-YLaunch -Config $LaunchConfig -Root $PSScriptRoot -Options $options
 # report) and the CRAP gate, no method above 30 outside .config/crap-exceptions.json. Until the launcher
 # core runs the gates itself.
 if ($Coverage -and $script:YLaunchExitCode -eq 0) {
-    & pwsh -NoProfile -File (Join-Path $PSScriptRoot "scripts\coverage-gate.ps1") -CoverageRoot (Join-Path $PSScriptRoot "TestResults\CoverageReport") -MinLine 95 -MinBranch 85
+    & pwsh -NoProfile -File (Join-Path $PSScriptRoot "scripts\coverage-gate.ps1") -CoverageRoot (Join-Path $PSScriptRoot "TestResults\CoverageReport")
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     & pwsh -NoProfile -File (Join-Path $PSScriptRoot "scripts\crap-gate.ps1") -CoverageRoot (Join-Path $PSScriptRoot "TestResults\Coverage")
     exit $LASTEXITCODE

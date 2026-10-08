@@ -5,16 +5,6 @@ using Microsoft.Extensions.Options;
 
 namespace OmniEurope.Performance.Tests;
 
-/// <summary>A clock the test moves by hand.</summary>
-internal sealed class ManualClock(DateTimeOffset start) : TimeProvider
-{
-    private DateTimeOffset _now = start;
-
-    public override DateTimeOffset GetUtcNow() => _now;
-
-    public void Advance(TimeSpan by) => _now += by;
-}
-
 /// <summary>A recorder fed by hand, on its own meter factory.</summary>
 internal sealed class TestRecorder : IDisposable
 {

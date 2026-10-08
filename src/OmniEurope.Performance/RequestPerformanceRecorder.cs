@@ -61,8 +61,11 @@ public sealed class RequestPerformanceRecorder : IHostedService, IDisposable
         _options = options.Value;
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(_options.Window, TimeSpan.Zero, "options.Window");
         ArgumentOutOfRangeException.ThrowIfLessThan(_options.SlowestCount, 1, "options.SlowestCount");
-        var ringBytes = _options.MemoryLimitBytes - FixedOverheadBytes - SlowestRequests.ReservedBytes(_options.SlowestCount, _options.Window);
-        var capacity = ringBytes / Unsafe.SizeOf<RequestTimingSample>();
+        // Compared before subtracting: a limit near long.MinValue would otherwise wrap into a huge budget.
+        var reservedBytes = FixedOverheadBytes + SlowestRequests.ReservedBytes(_options.SlowestCount, _options.Window);
+        var capacity = _options.MemoryLimitBytes > reservedBytes
+            ? (_options.MemoryLimitBytes - reservedBytes) / Unsafe.SizeOf<RequestTimingSample>()
+            : 0;
         if (capacity < 1)
             throw new ArgumentOutOfRangeException("options.MemoryLimitBytes", _options.MemoryLimitBytes,
                 "The memory limit leaves no room for the rolling samples: raise it, or lower SlowestCount or Window.");

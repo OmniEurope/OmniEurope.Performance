@@ -4,6 +4,17 @@ Notable changes to this project are documented here, following the Keep a Change
 
 ## [Unreleased]
 
+### Fixed
+
+- The percentiles no longer count a request already outside the window when two simultaneous requests reached the
+  rolling samples out of order, and the truncation flag no longer goes back on an older overwritten request.
+- `MemoryLimitBytes` near `long.MinValue` is refused at construction instead of wrapping around into a huge budget.
+
+### Changed
+
+- ReportGenerator is a pinned local tool, so `.\ylaunch.ps1 -c` no longer needs a global install.
+- The coverage floors are defined once, in `scripts/coverage-gate.ps1`.
+
 ## [1.1.0] - 2026-10-07
 
 ### Removed
