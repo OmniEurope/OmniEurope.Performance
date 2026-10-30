@@ -51,29 +51,34 @@ public sealed class RequestPerformanceRecorder : IHostedService, IDisposable
     /// <param name="options">The window, the slowest count, the memory limit and the routes measured.</param>
     /// <param name="time">The clock that dates the samples and ages them out.</param>
     /// <param name="meterFactory">The host's meter factory: only its instruments are heard.</param>
-    /// <exception cref="ArgumentOutOfRangeException">A window or a slowest count that is not positive, or a memory
-    /// limit that leaves no room for the rolling samples once the slowest list has its share.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A window or a slowest count that is not positive, a window
+    /// reaching back before the first calendar date, or a memory limit that leaves no room for the rolling samples
+    /// once the slowest list has its share.</exception>
     public RequestPerformanceRecorder(IOptions<PerformanceOptions> options, TimeProvider time, IMeterFactory meterFactory)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(time);
         ArgumentNullException.ThrowIfNull(meterFactory);
         _options = options.Value;
+        var now = time.GetUtcNow().UtcDateTime;
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(_options.Window, TimeSpan.Zero, "options.Window");
         ArgumentOutOfRangeException.ThrowIfLessThan(_options.SlowestCount, 1, "options.SlowestCount");
-        // Compared before subtracting: a limit near long.MinValue would otherwise wrap into a huge budget.
-        var reservedBytes = FixedOverheadBytes + SlowestRequests.ReservedBytes(_options.SlowestCount, _options.Window);
-        var capacity = _options.MemoryLimitBytes > reservedBytes
-            ? (_options.MemoryLimitBytes - reservedBytes) / Unsafe.SizeOf<RequestTimingSample>()
+        // Compare before each subtraction; even a saturated reservation must never wrap into a usable budget.
+        var availableBytes = _options.MemoryLimitBytes > FixedOverheadBytes ? _options.MemoryLimitBytes - FixedOverheadBytes : 0;
+        var reservedBytes = SlowestRequests.ReservedBytes(_options.SlowestCount, _options.Window);
+        var capacity = availableBytes > reservedBytes
+            ? (availableBytes - reservedBytes) / Unsafe.SizeOf<RequestTimingSample>()
             : 0;
         if (capacity < 1)
             throw new ArgumentOutOfRangeException("options.MemoryLimitBytes", _options.MemoryLimitBytes,
                 "The memory limit leaves no room for the rolling samples: raise it, or lower SlowestCount or Window.");
+        // Every read and every new hour subtract the window from the clock: past the calendar, they would throw.
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(_options.Window, now - DateTime.MinValue, "options.Window");
         _time = time;
         _meterScope = meterFactory;
         _slowest = new SlowestRequests(_options.SlowestCount, _options.Window);
         _samples = new SampleRing((int)Math.Min(capacity, Array.MaxLength));
-        _startedAt = time.GetUtcNow().UtcDateTime;
+        _startedAt = now;
         _filter = _options.RouteFilter ?? IsMeasuredByDefault;
     }
 

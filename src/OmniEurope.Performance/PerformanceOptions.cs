@@ -8,7 +8,10 @@ namespace OmniEurope.Performance;
 /// </summary>
 public sealed class PerformanceOptions
 {
-    /// <summary>How far back the figures go: 7 days by default. The window lives in memory and restarts with the process.</summary>
+    /// <summary>
+    /// How far back the figures go: 7 days by default. The window lives in memory and restarts with the process.
+    /// A window reaching back before the first calendar date is refused when the recorder is created.
+    /// </summary>
     public TimeSpan Window { get; set; } = TimeSpan.FromDays(7);
 
     /// <summary>

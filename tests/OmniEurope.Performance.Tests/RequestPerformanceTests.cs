@@ -184,6 +184,32 @@ public sealed class RequestPerformanceTests
     }
 
     [Theory]
+    [InlineData(5_000_000)]
+    [InlineData(10_000_000)]
+    public void SlowestBudget_SaturatesInsteadOfWrappingForAnUnrepresentableReservation(int windowDays)
+    {
+        Assert.Equal(long.MaxValue, SlowestRequests.ReservedBytes(int.MaxValue, TimeSpan.FromDays(windowDays)));
+    }
+
+    [Theory]
+    [InlineData(5_000_000, 2 * 1024 * 1024)]
+    [InlineData(5_000_000, long.MaxValue)]
+    [InlineData(10_000_000, long.MaxValue)]
+    public void Recorder_RefusesAnUnrepresentableReservation_BeforeAllocating(int windowDays, long memoryLimitBytes)
+    {
+        var options = new PerformanceOptions
+        {
+            Window = TimeSpan.FromDays(windowDays),
+            SlowestCount = int.MaxValue,
+            MemoryLimitBytes = memoryLimitBytes
+        };
+
+        var refusal = Assert.Throws<ArgumentOutOfRangeException>(() => new TestRecorder(new ManualClock(Now), options));
+
+        Assert.Equal("options.MemoryLimitBytes", refusal.ParamName);
+    }
+
+    [Theory]
     [InlineData(0, 20, 2 * 1024 * 1024)]
     [InlineData(1, 0, 2 * 1024 * 1024)]
     [InlineData(168, 20, 100_000)] // the slowest list of 7 days alone needs more than 100 kB
@@ -199,6 +225,22 @@ public sealed class RequestPerformanceTests
         };
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new TestRecorder(new ManualClock(Now), options));
+    }
+
+    [Fact]
+    public void Recorder_RefusesAWindowThatStartsBeforeTheCalendar()
+    {
+        var start = new DateTimeOffset(DateTime.MinValue.AddDays(7), TimeSpan.Zero);
+        var longest = TimeSpan.FromDays(7);
+
+        using var accepted = new TestRecorder(new ManualClock(start), new PerformanceOptions { Window = longest });
+        accepted.Recorder.Record("/orders", "GET", 200, 5);
+        Assert.Equal(1, accepted.Recorder.Summarize().SampleCount);
+
+        var refusal = Assert.Throws<ArgumentOutOfRangeException>(() => new TestRecorder(
+            new ManualClock(start), new PerformanceOptions { Window = longest + TimeSpan.FromTicks(1) }));
+
+        Assert.Equal("options.Window", refusal.ParamName);
     }
 
     /// <summary>The memory limit that leaves room for exactly <paramref name="samples"/> rolling samples beside

@@ -86,14 +86,20 @@ public sealed class PerformancePageTests : IDisposable
     }
 
     [Theory]
-    [InlineData("en-GB", "en")]
-    [InlineData("fr-BE", "fr")]
-    [InlineData("", "fr")] // invariant culture: its two-letter name "iv" is no language
-    public void ThePageLanguage_IsTheUiCultures_OrTheNeutralFrench(string culture, string expected)
+    [InlineData("en-GB", "en", "Site performance")]
+    [InlineData("fr-BE", "fr", "Performances du site")]
+    [InlineData("de-DE", "fr", "Performances du site")]
+    [InlineData("es-ES", "fr", "Performances du site")]
+    [InlineData("", "fr", "Performances du site")] // invariant culture: its two-letter name "iv" is no language
+    public void ThePageLanguage_MatchesTheRenderedTexts_IncludingTheNeutralFallback(string culture, string expected, string title)
     {
-        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+        UseCulture(culture);
+        UseRecorder(new PerformanceOptions());
 
-        Assert.Equal(expected, PerformancePage.Language);
+        var page = _context.Render<PerformancePage>();
+
+        Assert.Contains($"<html lang=\"{expected}\">", page.Markup, StringComparison.Ordinal);
+        Assert.Equal(title, page.Find("h1").TextContent);
     }
 
     private RequestPerformanceRecorder UseRecorder(PerformanceOptions options)

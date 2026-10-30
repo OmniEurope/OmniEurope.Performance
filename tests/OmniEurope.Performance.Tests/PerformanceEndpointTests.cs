@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
+using System.Diagnostics.Metrics;
 using System.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -140,6 +141,37 @@ public sealed class PerformanceEndpointTests
 
         Assert.Single(app.Services.GetServices<RequestPerformanceRecorder>());
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(PerformanceEndpointRouteBuilderExtensions.DefaultPattern, TestContext.Current.CancellationToken)).StatusCode);
+    }
+
+    [Fact]
+    public async Task StopAsync_StopsCollectingTheHostsMetrics_AndCanBeRepeated()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var provider = new ServiceCollection().AddMetrics().BuildServiceProvider();
+        var factory = provider.GetRequiredService<IMeterFactory>();
+        using var recorder = new RequestPerformanceRecorder(
+            Microsoft.Extensions.Options.Options.Create(new PerformanceOptions()), TimeProvider.System, factory);
+        using var meter = factory.Create(new MeterOptions(RequestPerformanceRecorder.MeterName));
+        var duration = meter.CreateHistogram<double>(RequestPerformanceRecorder.InstrumentName);
+        KeyValuePair<string, object?>[] tags =
+        [
+            new("http.route", "/orders/{id}"),
+            new("http.request.method", "GET"),
+            new("http.response.status_code", 200)
+        ];
+
+        await recorder.StopAsync(ct); // stopping before startup is harmless
+        await recorder.StartAsync(ct);
+        duration.Record(0.010, tags);
+        Assert.Equal(1, recorder.Summarize().SampleCount);
+
+        await recorder.StopAsync(ct);
+        duration.Record(0.020, tags);
+
+        var summary = recorder.Summarize();
+        Assert.Equal(1, summary.SampleCount);
+        Assert.Equal(10d, Assert.Single(summary.Slowest).DurationMs);
+        await recorder.StopAsync(ct);
     }
 
     [Fact]

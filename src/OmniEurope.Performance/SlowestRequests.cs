@@ -24,9 +24,13 @@ internal sealed class SlowestRequests(int count, TimeSpan window)
     private readonly Dictionary<long, PriorityQueue<RequestTimingSample, double>> _buckets = new(BucketCount(window));
     private readonly Lock _gate = new();
 
-    /// <summary>The most memory the buckets of one window hold: every hour it touches, edges included, full.</summary>
-    public static long ReservedBytes(int count, TimeSpan window) =>
-        BucketCount(window) * ((long)count * Unsafe.SizeOf<(RequestTimingSample, double)>() + BucketOverheadBytes);
+    /// <summary>The most memory the buckets of one window hold: every hour it touches, edges included, full.
+    /// Saturates at <see cref="long.MaxValue"/> if the reservation cannot fit in a <see cref="long"/>.</summary>
+    public static long ReservedBytes(int count, TimeSpan window)
+    {
+        var bytes = (Int128)BucketCount(window) * ((long)count * Unsafe.SizeOf<(RequestTimingSample, double)>() + BucketOverheadBytes);
+        return bytes > long.MaxValue ? long.MaxValue : (long)bytes;
+    }
 
     /// <summary>The hours a window touches, both partial edges included.</summary>
     private static int BucketCount(TimeSpan window) => (int)Math.Ceiling(window.TotalHours) + 1;

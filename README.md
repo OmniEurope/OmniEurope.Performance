@@ -2,8 +2,8 @@
 # OmniEurope.Performance
 
 A Razor class library that adds **a request performance page** to an ASP.NET Core application, kept to the bare
-minimum: **no theme, no styling, no third-party dependency**, at most 2 MiB of memory held. A single NuGet package,
-licensed under EUPL-1.2.
+minimum: **no theme, no styling, no third-party dependency**, with a collector memory budget of 2 MiB by default.
+A single NuGet package, licensed under EUPL-1.2.
 
 ## Usage
 
@@ -36,8 +36,8 @@ variables...), then `AddOmniPerformance(o => ...)`, which has the last word:
 | `MemoryLimitBytes` | `2097152` (2 MiB) | Memory held by the collector, allocated once at startup. |
 | `RouteFilter` | probes, framework and static files left out | Routes measured (code only). |
 
-A setting that leaves nothing to measure (a zero window or count, a limit too low for the chosen window) is refused
-when the application starts.
+A setting that leaves nothing to measure (a zero window or count, a window reaching back before the first calendar
+date, a limit too low for the chosen window) is refused when the application starts.
 
 ## What the package does
 
@@ -104,4 +104,4 @@ continuous integration.
 
 ## Licence
 
-EUPL-1.2, see [LICENSE](LICENSE).
+EUPL-1.2, see [LICENSE](https://licenses.nuget.org/EUPL-1.2).

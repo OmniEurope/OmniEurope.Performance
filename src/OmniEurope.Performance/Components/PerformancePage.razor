@@ -91,19 +91,3 @@
     </main>
 </body>
 </html>
-
-@code {
-    private RequestPerformanceSummary _summary = default!;
-
-    [Inject] private RequestPerformanceRecorder Recorder { get; set; } = default!;
-    [Inject] private IStringLocalizer<PerformanceStrings> L { get; set; } = default!;
-
-    /// <summary>The language of the texts: the UI culture's, or French, the neutral language, under the
-    /// invariant culture (whose two-letter name, "iv", is no language).</summary>
-    internal static string Language => CultureInfo.CurrentUICulture.Name.Length == 0
-        ? "fr"
-        : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-
-    /// <inheritdoc />
-    protected override void OnInitialized() => _summary = Recorder.Summarize();
-}

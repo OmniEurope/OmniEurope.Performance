@@ -1,10 +1,13 @@
-# crap-gate 1
+# crap-gate 3
 #
-# CRAP gate. Everything project-specific lives in the repository's .config/crap-exceptions.json.
+# CRAP gate. DO NOT EDIT A COPY: this file is copied verbatim into scripts/ of every .NET repository.
+# Everything project-specific lives in the repository's .config/crap-exceptions.json.
 #
 # Score of a method: CC^2 * (1 - line coverage)^3 + CC, read from the coverlet Cobertura reports found
 # under -CoverageRoot (cyclomatic complexity and line hits). Several reports are merged: a line is covered
-# when any report hit it. A method above the threshold fails unless the exceptions file admits it with a
+# when any report hit it. A line is identified by its file's full path, the report's <source> joined to
+# the class filename: two reports rooted at different sources name the same file differently, and keying
+# on the bare filename counted its lines twice and halved its coverage. A method above the threshold fails unless the exceptions file admits it with a
 # reason and a complexity ceiling. Left out as generated code: Razor BuildRenderTree, lambdas and their
 # closure classes, files under obj/, *.g.cs, *.g.i.cs, *.Designer.cs and EF Core Migrations/. An async or
 # iterator state machine (Type/<Name>d__N.MoveNext) is scored under its source method's name.
@@ -64,6 +67,20 @@ function Get-MethodKey([string]$className, [string]$methodName) {
     return "${owner}::$name"
 }
 
+# The full path of a class file: a rooted filename as is, otherwise joined to the report source that holds
+# it (the first source when none does, the file being absent from this machine).
+function Resolve-ClassFile([string]$file, [string[]]$sources) {
+    if ([IO.Path]::IsPathRooted($file) -or $sources.Count -eq 0) { $full = $file }
+    else {
+        $full = Join-Path $sources[0] $file
+        foreach ($source in $sources) {
+            $candidate = Join-Path $source $file
+            if (Test-Path -LiteralPath $candidate) { $full = $candidate; break }
+        }
+    }
+    return [IO.Path]::GetFullPath($full).Replace('\', '/')
+}
+
 function Test-GeneratedFile([string]$file) {
     $path = $file.Replace('\', '/')
     return ($path -match '(^|/)obj/' -or $path -match '\.(g|g\.i|Designer)\.cs$' -or $path -match '(^|/)Migrations/')
@@ -88,13 +105,22 @@ $excludedUsed = @{}
 $methods = @{}
 foreach ($report in $reports) {
     [xml]$coverage = Get-Content -LiteralPath $report.FullName -Raw
+    # A report without any class means the collection failed (coverlet instruments the test output in place: another
+    # process holding those assemblies leaves an empty file while the tests still pass). Scoring it would read every
+    # method it should have covered as 0 %, so the gate refuses it instead of reporting false CRAP scores.
+    if (@($coverage.coverage.packages.package.classes.class | Where-Object { $_ }).Count -eq 0) {
+        throw "Cobertura report without any class: $($report.FullName). Coverage was not collected (another process probably held the test assemblies): run the tests again."
+    }
+    $sources = @($coverage.coverage.sources.source | Where-Object { $_ } | ForEach-Object { [string]$_ })
     foreach ($class in @($coverage.coverage.packages.package.classes.class)) {
         if ($null -eq $class) { continue }
-        $file = [string]$class.filename
+        $relative = [string]$class.filename
+        $file = Resolve-ClassFile $relative $sources
         if (Test-GeneratedFile $file) { continue }
         $skip = $false
         foreach ($excluded in $excludedFiles) {
-            if ($excluded.pattern -and $file.Replace('\', '/') -like ([string]$excluded.pattern).Replace('\', '/')) {
+            $pattern = ([string]$excluded.pattern).Replace('\', '/')
+            if ($excluded.pattern -and ($file -like $pattern -or $relative.Replace('\', '/') -like $pattern)) {
                 $excludedUsed[[string]$excluded.pattern] = $true
                 $skip = $true
             }

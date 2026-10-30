@@ -4,6 +4,26 @@ Notable changes to this project are documented here, following the Keep a Change
 
 ## [Unreleased]
 
+### Fixed
+
+- A `SlowestCount` and a `Window` whose slowest-list reservation overflows are refused at construction instead of
+  wrapping around into a huge allocation.
+- A `Window` reaching back before the first calendar date is refused at construction instead of throwing on every
+  read and on the request path.
+- The page's `lang` attribute names the language of its texts: French under a culture without a translation, where it
+  used to name that culture's language.
+- The package description and the README state 2 MiB as the default collector budget, not as an absolute ceiling.
+- The README's licence link no longer renders empty on the NuGet page.
+
+### Changed
+
+- The .NET SDK floor moves to 10.0.403 (runtime 10.0.14) for CVE-2026-111497.
+- The CRAP gate identifies a line by its file's full path across reports and refuses a report without any class.
+
+### Added
+
+- A test of `StopAsync`: the collection stops, and stopping before startup or twice is harmless.
+
 ## [1.1.1] - 2026-10-08
 
 ### Fixed
@@ -47,7 +67,8 @@ Notable changes to this project are documented here, following the Keep a Change
 
 ### Changed
 
-- First stable version: the public API now follows semantic versioning.
+- First stable version: the public API now follows semantic versioning. Compatibility note: 1.1.0 is a historical
+  exception to this policy; its Removed section documents the breaking change and migration to `RequestPerformanceRecorder.Summarize()`.
 
 ## [0.2.0] - 2026-10-06
 
